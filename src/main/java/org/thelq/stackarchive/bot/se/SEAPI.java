@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.Properties;
 import net.sf.json.JSONObject;
 import net.sf.json.JSONSerializer;
+import net.sf.json.JsonConfig;
+import net.sf.json.util.JavaIdentifierTransformer;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
@@ -46,16 +48,17 @@ public class SEAPI {
 		querySE("posts", "stackoverflow");
 	}
 
-	protected JSONObject querySE(String method, String site, String... options) throws Exception {
+	protected ResponseEntry querySE(String method, String site, String... options) throws Exception {
 		HttpGet httpGet = null;
 		try {
 			String url = "https://api.stackexchange.com/2.1/" + method + "?key=" + seApiKey + "&site=" + site;
 			for (String curOption : options)
 				url += "&" + curOption;
-			log.debug("Querying API with URL: " + url);
 
 			//Do the request
 			//TODO: Figure out how to handle errors with different status codes (causes Exception)
+			//TODO: Handle backoff times
+			log.debug("Querying API with URL: " + url);
 			httpGet = new HttpGet(url);
 			HttpResponse responseHttp = httpclient.execute(httpGet);
 			String responseRaw = EntityUtils.toString(responseHttp.getEntity());
@@ -67,13 +70,45 @@ public class SEAPI {
 				throw new SEException(responseJSON.getInt("error_id"), responseJSON.getString("error_name"),
 						responseJSON.getString("error_message"));
 
-			//No errors, were done
-			return responseJSON;
+			//No errors, convert to ResponseEntry
+			JsonConfig jsonConfig = new JsonConfig();
+			jsonConfig.setRootClass(ResponseEntry.class);
+			jsonConfig.setJavaIdentifierTransformer(new UnderscoreCamelCaseTransformer());
+			ResponseEntry responseEntry = (ResponseEntry) JSONSerializer.toJava(responseJSON, jsonConfig);
+
+			return responseEntry;
 		} catch (Exception e) {
 			throw new Exception("Can't query StackExchange", e);
 		} finally {
 			if (httpGet != null)
 				httpGet.releaseConnection();
+		}
+	}
+
+	protected static class UnderscoreCamelCaseTransformer extends JavaIdentifierTransformer {
+		public String transformToJavaIdentifier(String str) {
+			//Slightly modified version of CamelCaseJavaIdentifierTransformer
+			if (str == null)
+				return null;
+
+			String str2 = shaveOffNonJavaIdentifierStartChars(str);
+
+			char[] chars = str2.toCharArray();
+			int pos = 0;
+			StringBuffer buf = new StringBuffer();
+			boolean toUpperCaseNextChar = false;
+			while (pos < chars.length) {
+				if (!Character.isJavaIdentifierPart(chars[pos])
+						|| chars[pos] == '_')
+					toUpperCaseNextChar = true;
+				else if (toUpperCaseNextChar) {
+					buf.append(Character.toUpperCase(chars[pos]));
+					toUpperCaseNextChar = false;
+				} else
+					buf.append(chars[pos]);
+				pos++;
+			}
+			return buf.toString();
 		}
 	}
 }
