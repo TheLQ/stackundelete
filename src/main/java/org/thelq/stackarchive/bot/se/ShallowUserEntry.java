@@ -9,12 +9,18 @@ import lombok.Data;
  */
 @Data
 public class ShallowUserEntry {
+	@MaybeAbsent
 	protected int userId;
 	protected Type userType;
+	@MaybeAbsent
 	protected String displayName;
+	@MaybeAbsent
 	protected int acceptRate;
+	@MaybeAbsent
 	protected String link;
+	@MaybeAbsent
 	protected String profileImage;
+	@MaybeAbsent
 	protected int reputation;
 	
 	

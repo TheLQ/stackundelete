@@ -16,7 +16,9 @@ public class CommentEntry {
 	protected long creationDate;
 	protected boolean edited;
 	protected String link;
+	@MaybeAbsent
 	protected ShallowUserEntry owner;
+	@MaybeAbsent
 	protected ShallowUserEntry replyToUser;
 	protected int score;
 

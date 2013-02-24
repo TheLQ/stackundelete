@@ -11,6 +11,7 @@ import net.sf.json.JSONObject;
  */
 @Data
 public class ResponseEntry {
+	@MaybeAbsent
 	protected int backoff;
 	protected boolean hasMore;
 	protected JSONArray items;
