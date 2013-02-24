@@ -53,13 +53,24 @@ public class SEAPI {
 			for (String curOption : options)
 				url += "&" + curOption;
 			log.debug("Querying API with URL: " + url);
+
+			//Do the request
 			//TODO: Figure out how to handle errors with different status codes (causes Exception)
 			httpGet = new HttpGet(url);
-			HttpResponse response1 = httpclient.execute(httpGet);
-			String rawResponse = EntityUtils.toString(response1.getEntity());
-			return (JSONObject) JSONSerializer.toJSON(rawResponse);
+			HttpResponse responseHttp = httpclient.execute(httpGet);
+			String responseRaw = EntityUtils.toString(responseHttp.getEntity());
+			JSONObject responseJSON = (JSONObject) JSONSerializer.toJSON(responseRaw);
+
+			//Handle errors
+			if (responseJSON.containsKey("error_id"))
+				//Have an error, throw an exception
+				throw new SEException(responseJSON.getInt("error_id"), responseJSON.getString("error_name"),
+						responseJSON.getString("error_message"));
+
+			//No errors, were done
+			return responseJSON;
 		} catch (Exception e) {
-			throw new Exception("Can't query recent questions", e);
+			throw new Exception("Can't query StackExchange", e);
 		} finally {
 			if (httpGet != null)
 				httpGet.releaseConnection();
