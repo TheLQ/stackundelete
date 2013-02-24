@@ -4,21 +4,21 @@ import java.io.IOException;
 import java.util.Properties;
 import net.sf.json.JSONObject;
 import net.sf.json.JSONSerializer;
-import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.fluent.Request;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.ContentEncodingHttpClient;
 import org.apache.http.impl.client.DecompressingHttpClient;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  * @author Leon
  */
 public class SEAPI {
+	protected static final Logger log = LoggerFactory.getLogger(SEAPI.class);
 	protected final String seApiKey;
 	protected static SEAPI instance;
 	protected HttpClient httpclient = new DecompressingHttpClient(new DefaultHttpClient());
@@ -27,7 +27,7 @@ public class SEAPI {
 		try {
 			instance = new SEAPI();
 		} catch (IOException ex) {
-			ex.printStackTrace();
+			log.error("FATAL EXCEPTION: Can't load config.properties", ex);
 			System.exit(2);
 		}
 	}
@@ -52,7 +52,7 @@ public class SEAPI {
 			String url = "https://api.stackexchange.com/2.1/" + method + "?key=" + seApiKey + "&site=" + site;
 			for (String curOption : options)
 				url += "&" + curOption;
-			System.out.println("URL: " + url);
+			log.debug("Querying API with URL: " + url);
 			//TODO: Figure out how to handle errors with different status codes (causes Exception)
 			httpGet = new HttpGet(url);
 			HttpResponse response1 = httpclient.execute(httpGet);
