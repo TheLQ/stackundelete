@@ -1,5 +1,7 @@
 package org.thelq.stackarchive.bot;
 
+import org.thelq.stackarchive.bot.se.SEAPI;
+
 /**
  * Hello world!
  *

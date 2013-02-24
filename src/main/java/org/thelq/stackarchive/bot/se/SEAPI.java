@@ -1,4 +1,4 @@
-package org.thelq.stackarchive.bot;
+package org.thelq.stackarchive.bot.se;
 
 import java.io.IOException;
 import java.util.Properties;
