@@ -9,7 +9,7 @@ import lombok.EqualsAndHashCode;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class SEException extends RuntimeException {
+public class SEException extends Exception {
 	protected int errorId;
 	protected String errorName;
 	protected String errorMessage;
