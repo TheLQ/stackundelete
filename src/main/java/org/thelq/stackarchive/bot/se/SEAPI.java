@@ -59,11 +59,8 @@ public class SEAPI {
 		seApiKey = config.getProperty("se_api_key");
 	}
 
-	public void getRecent() throws Exception {
-		ResponseEntry<PostEntry> entry = querySE(PostEntry.class, "posts", "stackoverflow");
-		log.debug("Items class: " + entry.getItems());
-		for (PostEntry curEntry : entry.getItems())
-			log.debug(" - " + curEntry.toString());
+	public ResponseEntry<PostEntry> getRecent(String site) throws Exception {
+		return querySE(PostEntry.class, "posts", site);
 	}
 
 	protected <E> ResponseEntry<E> querySE(Class<E> itemClass, String method, String site, String... options) throws Exception {
