@@ -18,6 +18,7 @@ import com.fasterxml.jackson.databind.deser.std.StdScalarDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.util.Map;
 import java.util.Properties;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -79,16 +80,15 @@ public class SEAPI {
 			HttpResponse responseHttp = httpclient.execute(httpGet);
 			String responseRaw = EntityUtils.toString(responseHttp.getEntity());
 
-			//Handle errors
-			/*
-			 if (responseJSON.containsKey("error_id"))
-			 //Have an error, throw an exception
-			 throw new SEException(responseJSON.getInt("error_id"), responseJSON.getString("error_name"),
-			 responseJSON.getString("error_message"));
-			 */
+			//Handle errors 
+			ObjectMapper mapper = new ObjectMapper();
+			Map<String, Object> responseMap = mapper.readValue(responseRaw, Map.class);
+			if (responseMap.containsKey("error_id"))
+				//Have an error, throw an exception
+				throw new SEException((int) (Integer) responseMap.get("error_id"),
+						(String) responseMap.get("error_name"), (String) responseMap.get("error_message"));
 
 			//No errors, convert what we can to ResponseEntry automatically
-			ObjectMapper mapper = new ObjectMapper();
 			mapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
 			//DeserializationConfig.Feature.READ_ENUMS_USING_TO_STRING 
 			mapper.registerModule(new EnumCaseInsensitiveModule());
@@ -141,6 +141,5 @@ public class SEAPI {
 			};
 			context.addDeserializers(deser);
 		}
-	;
-}
+	}
 }
