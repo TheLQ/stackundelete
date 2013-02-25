@@ -59,7 +59,7 @@ public class SEAPI {
 		seApiKey = config.getProperty("se_api_key");
 	}
 
-	public ResponseEntry<PostEntry> getRecent(String site) throws Exception {
+	public ResponseEntry<PostEntry> getRecentPosts(String site) throws Exception {
 		return querySE(PostEntry.class, "posts", site);
 	}
 
