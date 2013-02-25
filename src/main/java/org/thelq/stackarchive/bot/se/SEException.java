@@ -2,12 +2,17 @@ package org.thelq.stackarchive.bot.se;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
 /**
  *
  * @author Leon
  */
-@Data
+//Manually specify since we don't want @ToString (want message) or @AllArgsConstructor 
+@Getter
+@Setter
 @EqualsAndHashCode(callSuper = true)
 public class SEException extends Exception {
 	protected int errorId;
