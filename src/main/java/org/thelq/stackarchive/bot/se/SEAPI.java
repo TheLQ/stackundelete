@@ -1,17 +1,24 @@
 package org.thelq.stackarchive.bot.se;
 
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.Version;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.BeanDescription;
+import com.fasterxml.jackson.databind.DeserializationConfig;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.Module.SetupContext;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.databind.deser.Deserializers;
+import com.fasterxml.jackson.databind.deser.Deserializers.Base;
+import com.fasterxml.jackson.databind.deser.std.StdScalarDeserializer;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.lang.reflect.Method;
 import java.util.Properties;
-import net.sf.ezmorph.bean.MorphDynaBean;
-import net.sf.json.JSONArray;
-import net.sf.json.JSONException;
-import net.sf.json.JSONObject;
-import net.sf.json.JSONSerializer;
-import net.sf.json.JsonConfig;
-import net.sf.json.util.JavaIdentifierTransformer;
-import net.sf.json.util.PropertySetStrategy;
-import org.apache.commons.beanutils.DynaProperty;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
@@ -51,10 +58,13 @@ public class SEAPI {
 	}
 
 	public void getRecent() throws Exception {
-		querySE(PostEntry.class, "posts", "stackoverflow");
+		ResponseEntry<PostEntry> entry = querySE(PostEntry.class, "posts", "stackoverflow");
+		log.debug("Items class: " + entry.getItems());
+		for (PostEntry curEntry : entry.getItems())
+			log.debug(" - " + curEntry.toString());
 	}
 
-	protected <E> ResponseEntry querySE(Class<E> itemClass, String method, String site, String... options) throws Exception {
+	protected <E> ResponseEntry<E> querySE(Class<E> itemClass, String method, String site, String... options) throws Exception {
 		HttpGet httpGet = null;
 		try {
 			String url = "https://api.stackexchange.com/2.1/" + method + "?key=" + seApiKey + "&site=" + site;
@@ -68,23 +78,22 @@ public class SEAPI {
 			httpGet = new HttpGet(url);
 			HttpResponse responseHttp = httpclient.execute(httpGet);
 			String responseRaw = EntityUtils.toString(responseHttp.getEntity());
-			JSONObject responseJSON = (JSONObject) JSONSerializer.toJSON(responseRaw);
 
 			//Handle errors
-			if (responseJSON.containsKey("error_id"))
-				//Have an error, throw an exception
-				throw new SEException(responseJSON.getInt("error_id"), responseJSON.getString("error_name"),
-						responseJSON.getString("error_message"));
+			/*
+			 if (responseJSON.containsKey("error_id"))
+			 //Have an error, throw an exception
+			 throw new SEException(responseJSON.getInt("error_id"), responseJSON.getString("error_name"),
+			 responseJSON.getString("error_message"));
+			 */
 
 			//No errors, convert what we can to ResponseEntry automatically
-			JsonConfig jsonConfig = new JsonConfig();
-			jsonConfig.setRootClass(ResponseEntry.class);
-			jsonConfig.setJavaIdentifierTransformer(new UnderscoreCamelCaseTransformer());
-			jsonConfig.setPropertySetStrategy(new TreePropertySetStrategy());
-			ResponseEntry responseEntry = (ResponseEntry) JSONSerializer.toJava(responseJSON, jsonConfig);
-
-			//Covert items to their respective classes
-			JSONArray itemsArray = responseJSON.getJSONArray("items");
+			ObjectMapper mapper = new ObjectMapper();
+			mapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
+			//DeserializationConfig.Feature.READ_ENUMS_USING_TO_STRING 
+			mapper.registerModule(new EnumCaseInsensitiveModule());
+			ResponseEntry responseEntry = mapper.readValue(responseRaw, new TypeReference<ResponseEntry<PostEntry>>() {
+			});
 
 			return responseEntry;
 		} catch (Exception e) {
@@ -95,45 +104,43 @@ public class SEAPI {
 		}
 	}
 
-	protected static class UnderscoreCamelCaseTransformer extends JavaIdentifierTransformer {
-		public String transformToJavaIdentifier(String str) {
-			//Slightly modified version of CamelCaseJavaIdentifierTransformer
-			if (str == null)
-				return null;
-
-			String str2 = shaveOffNonJavaIdentifierStartChars(str);
-
-			char[] chars = str2.toCharArray();
-			int pos = 0;
-			StringBuffer buf = new StringBuffer();
-			boolean toUpperCaseNextChar = false;
-			while (pos < chars.length) {
-				if (!Character.isJavaIdentifierPart(chars[pos])
-						|| chars[pos] == '_')
-					toUpperCaseNextChar = true;
-				else if (toUpperCaseNextChar) {
-					buf.append(Character.toUpperCase(chars[pos]));
-					toUpperCaseNextChar = false;
-				} else
-					buf.append(chars[pos]);
-				pos++;
-			}
-			return buf.toString();
+	public static class LowerEnumDeserializer extends StdScalarDeserializer<Enum<?>> {
+		protected LowerEnumDeserializer(Class<Enum<?>> clazz) {
+			super(clazz);
 		}
-	}
 
-	protected static class TreePropertySetStrategy extends PropertySetStrategy {
 		@Override
-		public void setProperty(Object bean, String key, Object value) throws JSONException {
-			log.debug("Key: " + key + " | Value class: " + value.getClass());
-			if (value instanceof ArrayList)
-				for (MorphDynaBean curValueEntry : (ArrayList<MorphDynaBean>) value) {
-					log.debug(" - Subentry:");
-					for(DynaProperty curProperty : curValueEntry.getDynaClass().getDynaProperties())
-					log.debug("  -: Key: " + curProperty.getName() + " | Value: " + curValueEntry.get(curProperty.getName()));
-				}
-
-			PropertySetStrategy.DEFAULT.setProperty(bean, key, value);
+		public Enum<?> deserialize(JsonParser jp, DeserializationContext ctxt)
+				throws IOException, JsonProcessingException {
+			String text = jp.getText().toUpperCase();
+			try {
+				Method valueOfMethod = getValueClass().getDeclaredMethod("valueOf", String.class);
+				return (Enum<?>) valueOfMethod.invoke(null, text);
+			} catch (Exception e) {
+				throw new RuntimeException("Cannot deserialize enum " + getValueClass().getName() + " from " + text, e);
+			}
 		}
 	}
+
+	public static class EnumCaseInsensitiveModule extends SimpleModule {
+		public EnumCaseInsensitiveModule() {
+			super("stackarchive-se", new Version(1, 0, 0, "", "org.thelq", "stackarchive-se"));
+		}
+
+		@Override
+		public void setupModule(SetupContext context) {
+			super.setupModule(context);
+			Base deser = new Deserializers.Base() {
+				@SuppressWarnings("unchecked")
+				@Override
+				public JsonDeserializer<?> findEnumDeserializer(Class<?> type,
+						DeserializationConfig config, BeanDescription beanDesc)
+						throws JsonMappingException {
+					return new LowerEnumDeserializer((Class<Enum<?>>) type);
+				}
+			};
+			context.addDeserializers(deser);
+		}
+	;
+}
 }

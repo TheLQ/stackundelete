@@ -1,20 +1,19 @@
 
 package org.thelq.stackarchive.bot.se;
 
+import java.util.Collection;
 import lombok.Data;
-import net.sf.json.JSONArray;
-import net.sf.json.JSONObject;
 
 /**
  *
  * @author Leon
  */
 @Data
-public class ResponseEntry {
+public class ResponseEntry<E> {
 	@MaybeAbsent
 	protected int backoff;
 	protected boolean hasMore;
-	protected JSONArray items;
+	protected Collection<E> items;
 	protected int page;
 	protected int pageSize;
 	protected int quotaMax;
