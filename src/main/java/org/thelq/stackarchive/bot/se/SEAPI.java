@@ -1,11 +1,17 @@
 package org.thelq.stackarchive.bot.se;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Properties;
+import net.sf.ezmorph.bean.MorphDynaBean;
+import net.sf.json.JSONArray;
+import net.sf.json.JSONException;
 import net.sf.json.JSONObject;
 import net.sf.json.JSONSerializer;
 import net.sf.json.JsonConfig;
 import net.sf.json.util.JavaIdentifierTransformer;
+import net.sf.json.util.PropertySetStrategy;
+import org.apache.commons.beanutils.DynaProperty;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
@@ -45,10 +51,10 @@ public class SEAPI {
 	}
 
 	public void getRecent() throws Exception {
-		querySE("posts", "stackoverflow");
+		querySE(PostEntry.class, "posts", "stackoverflow");
 	}
 
-	protected ResponseEntry querySE(String method, String site, String... options) throws Exception {
+	protected <E> ResponseEntry querySE(Class<E> itemClass, String method, String site, String... options) throws Exception {
 		HttpGet httpGet = null;
 		try {
 			String url = "https://api.stackexchange.com/2.1/" + method + "?key=" + seApiKey + "&site=" + site;
@@ -70,11 +76,15 @@ public class SEAPI {
 				throw new SEException(responseJSON.getInt("error_id"), responseJSON.getString("error_name"),
 						responseJSON.getString("error_message"));
 
-			//No errors, convert to ResponseEntry
+			//No errors, convert what we can to ResponseEntry automatically
 			JsonConfig jsonConfig = new JsonConfig();
 			jsonConfig.setRootClass(ResponseEntry.class);
 			jsonConfig.setJavaIdentifierTransformer(new UnderscoreCamelCaseTransformer());
+			jsonConfig.setPropertySetStrategy(new TreePropertySetStrategy());
 			ResponseEntry responseEntry = (ResponseEntry) JSONSerializer.toJava(responseJSON, jsonConfig);
+
+			//Covert items to their respective classes
+			JSONArray itemsArray = responseJSON.getJSONArray("items");
 
 			return responseEntry;
 		} catch (Exception e) {
@@ -109,6 +119,21 @@ public class SEAPI {
 				pos++;
 			}
 			return buf.toString();
+		}
+	}
+
+	protected static class TreePropertySetStrategy extends PropertySetStrategy {
+		@Override
+		public void setProperty(Object bean, String key, Object value) throws JSONException {
+			log.debug("Key: " + key + " | Value class: " + value.getClass());
+			if (value instanceof ArrayList)
+				for (MorphDynaBean curValueEntry : (ArrayList<MorphDynaBean>) value) {
+					log.debug(" - Subentry:");
+					for(DynaProperty curProperty : curValueEntry.getDynaClass().getDynaProperties())
+					log.debug("  -: Key: " + curProperty.getName() + " | Value: " + curValueEntry.get(curProperty.getName()));
+				}
+
+			PropertySetStrategy.DEFAULT.setProperty(bean, key, value);
 		}
 	}
 }
