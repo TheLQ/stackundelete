@@ -23,6 +23,7 @@ import java.util.Properties;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.DecompressingHttpClient;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
@@ -68,15 +69,19 @@ public class SEAPI {
 	protected <E> ResponseEntry<E> querySE(Class<E> itemClass, String method, String site, String... options) throws Exception {
 		HttpGet httpGet = null;
 		try {
-			String url = "https://api.stackexchange.com/2.1/" + method + "?key=" + seApiKey + "&site=" + site;
+			URIBuilder url = new URIBuilder().setScheme("https").setHost("api.stackexchange.com")
+					.setPath("/2.1/" + method)
+					.setParameter("site", "stackoverflow")
+					.setParameter("intitle", "workaround")
+					.setParameter("tagged", "javascript");
 			for (String curOption : options)
-				url += "&" + curOption;
+				url.setParameter(curOption, null);
 
 			//Do the request
 			//TODO: Figure out how to handle errors with different status codes (causes Exception)
 			//TODO: Handle backoff times
 			log.debug("Querying API with URL: " + url);
-			httpGet = new HttpGet(url);
+			httpGet = new HttpGet(url.build());
 			HttpResponse responseHttp = httpclient.execute(httpGet);
 			String responseRaw = EntityUtils.toString(responseHttp.getEntity());
 

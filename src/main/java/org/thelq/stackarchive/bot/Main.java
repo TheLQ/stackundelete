@@ -8,6 +8,6 @@ import org.thelq.stackarchive.bot.se.SEAPI;
  */
 public class Main {
 	public static void main(String[] args) throws Exception {
-		SEAPI.get().getRecent();
+		SEAPI.get().getRecent("stackoverflow");
 	}
 }
