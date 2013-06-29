@@ -57,6 +57,15 @@
 			<artifactId>logback-classic</artifactId>
 			<version>1.0.9</version>
 		</dependency>
-	 
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-server</artifactId>
+			<version>9.0.3.v20130506</version>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-servlet</artifactId>
+			<version>9.0.3.v20130506</version>
+		</dependency>
 	</dependencies>
 </project>
