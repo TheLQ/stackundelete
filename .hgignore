@@ -1,2 +1,4 @@
 ^src/main/resources/config\.properties$
 ^nb-configuration\.xml$
+syntax: glob
+target/**
