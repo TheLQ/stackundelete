@@ -26,14 +26,14 @@
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
-			<version>0.11.6</version>
+			<version>0.11.8</version>
 			<scope>provided</scope>
 		</dependency>
 		<!-- Logging -->
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-classic</artifactId>
-			<version>1.0.9</version>
+			<version>1.0.13</version>
 		</dependency>
 		<!-- General Java Utilities -->
 		<dependency>
@@ -45,12 +45,12 @@
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-core</artifactId>
-			<version>2.1.3</version>
+			<version>2.2.2</version>
 		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
-			<version>2.1.2</version>
+			<version>2.2.2</version>
 		</dependency>
 		
 		<!--
@@ -59,12 +59,12 @@
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-server</artifactId>
-			<version>9.0.3.v20130506</version>
+			<version>9.0.4.v20130625</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-servlet</artifactId>
-			<version>9.0.3.v20130506</version>
+			<version>9.0.4.v20130625</version>
 		</dependency>
 	</dependencies>
 </project>
